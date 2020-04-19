@@ -19,9 +19,9 @@ impl<'ch> PassThruIsoTp<'ch> {
     /// Creates a new ISO-TP channel from a device
     ///
     /// # Arguments
-    /// `device` - the PassThru device.
-    /// `baudrate` - the baudrate in Hertz used in the CAN layer.
-    /// `timeout` - the timeout in milliseconds for sending and receiving.
+    /// - `device` - the PassThru device.
+    /// - `baudrate` - the baudrate in Hertz used in the CAN layer.
+    /// - `timeout` - the timeout in milliseconds for sending and receiving.
     pub fn new(
         device: &'ch j2534::Device,
         baudrate: u32,

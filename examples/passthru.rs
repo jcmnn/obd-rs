@@ -1,6 +1,6 @@
 //! This example queries a VIN using a PassThru device
 
-use obd::{IsoTp, PassThruIsoTp, Uds};
+use obd::{PassThruIsoTp, Uds};
 
 pub fn main() {
     // Get a list of interfaces

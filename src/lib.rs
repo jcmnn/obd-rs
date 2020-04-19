@@ -31,14 +31,14 @@ pub trait IsoTp {
     /// Sends an ISO-TP packet.
     ///
     /// # Arguments
-    /// `id` - the CAN arbitration ID.
-    /// `data` - The packet payload. Must not be larger than 4095 bytes.
+    /// - `id` - the CAN arbitration ID.
+    /// - `data` - The packet payload. Must not be larger than 4095 bytes.
     fn send_isotp(&mut self, id: u32, data: &[u8]) -> Result<(), Error>;
 
     /// Receives an ISO-TP packet.
     ///
     /// # Arguments
-    /// `id` - the CAN arbitration ID to listen for.
+    /// - `id` - the CAN arbitration ID to listen for.
     fn read_isotp(&mut self, id: u32) -> Result<Vec<u8>, Error>;
 
     fn query_isotp(&mut self, id: u32, data: &[u8]) -> Result<Vec<u8>, Error> {
@@ -109,9 +109,10 @@ pub trait Uds {
         }
     }
 
+    /// Queries the list of diagnostic trouble codes
     fn query_trouble_codes(&mut self, arbitration_id: u32) -> Result<Vec<DTC>, Error> {
         let response = self.query_uds(arbitration_id, 0x03, &[])?;
-        if let Some(size) = response.first() {
+        if let Some(_size) = response.first() {
             Ok((&response[1..])
                 .chunks(2)
                 .filter_map(|c| c.try_into().ok())
@@ -161,13 +162,5 @@ impl<I: IsoTp> Uds for I {
             response.remove(0);
             return Ok(response);
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        assert_eq!(2 + 2, 4);
     }
 }
