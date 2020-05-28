@@ -1,22 +1,41 @@
+//! This crate provides traits for communicating with engine control units (ECUs)
+
+#![deny(missing_docs)]
+
+/// OBD Error
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
     #[cfg(feature = "passthru")]
     #[error(transparent)]
+    /// PassThru error. This is available when the 'passthru' feature is enabled
     PassThru(#[from] j2534::Error),
 
+    /// An empty UDS response was received
     #[error("empty UDS response")]
     EmptyResponse,
 
+    /// A negative UDS response was received
     #[error("negative response: {0:?}")]
     NegativeResponse(Option<u8>),
 
+    /// An invalid SID was included in a UDS response
     #[error("invalid response SID {0:X}")]
-    InvalidResponseSID(u8),
+    InvalidResponseSid(u8),
 
+    /// An invalid PID was received with a UDS response
     #[error("invalid response PID")]
     InvalidResponsePid,
+
+    /// Invalid diagnostic session type
+    #[error("invalid diagnostic session type in response")]
+    InvalidSessionType,
+
+    /// Invalid security access type
+    #[error("invalid security access type in response")]
+    InvalidAccessType,
 }
 
+/// J2534 support
 #[cfg(feature = "passthru")]
 pub mod passthru;
 
@@ -41,6 +60,7 @@ pub trait IsoTp {
     /// - `id` - the CAN arbitration ID to listen for.
     fn read_isotp(&mut self, id: u32) -> Result<Vec<u8>, Error>;
 
+    /// Sends an ISO-TP packet and waits for a response
     fn query_isotp(&mut self, id: u32, data: &[u8]) -> Result<Vec<u8>, Error> {
         self.send_isotp(id, data)?;
         self.read_isotp(id + 8)
@@ -87,6 +107,11 @@ impl Display for DTC {
 /// Unified diagnostic services. This is the standard protocol
 /// used for reading PIDs and communicating with ECUs.
 pub trait Uds {
+    /// Sends a UDS message and waits for a response.
+    /// # Arguments
+    /// * `arbitration_id` - the CAN arbitration ID to use when sending. This is incremented by 8 to calculate the expected response ID.
+    /// * `request_sid` - the requested service ID.
+    /// * `data` - the message data.
     fn query_uds(
         &mut self,
         arbitration_id: u32,
@@ -122,6 +147,71 @@ pub trait Uds {
             Err(Error::EmptyResponse)
         }
     }
+
+    /// Sets the diagnostic session type
+    fn set_diagnostic_session(&mut self, arbitration_id: u32, id: u8) -> Result<(), Error> {
+        let response = self.query_uds(arbitration_id, UDS_REQ_SESSION, &[id])?;
+        if let Some(&res_id) = response.first() {
+            if res_id == id {
+                Ok(())
+            } else {
+                Err(Error::InvalidSessionType)
+            }
+        } else {
+            Err(Error::EmptyResponse)
+        }
+    }
+
+    /// Requests a security access seed
+    fn request_security_seed(&mut self, arbitration_id: u32) -> Result<Vec<u8>, Error> {
+        let mut response = self.query_uds(arbitration_id, UDS_REQ_SECURITY, &[1])?;
+        if let Some(&access_type) = response.first() {
+            if access_type != 1 {
+                Err(Error::InvalidAccessType)
+            } else {
+                response.remove(0);
+                Ok(response)
+            }
+        } else {
+            Err(Error::EmptyResponse)
+        }
+    }
+
+    /// Authenticates with a security access key. Usually, this is generated
+    /// using the seed retrieved from [`request_security_seed`].
+    fn request_security_key(&mut self, arbitration_id: u32, key: &[u8]) -> Result<(), Error> {
+        let mut request = Vec::with_capacity(key.len() + 1);
+        request.push(2);
+        request.extend_from_slice(key);
+
+        let response = self.query_uds(arbitration_id, UDS_REQ_SECURITY, &request)?;
+        if response.is_empty() {
+            Err(Error::EmptyResponse)
+        } else {
+            Ok(())
+        }
+    }
+
+    /// Requests memory at specified address. Usually, this requires an
+    /// authentication procedure with [`request_security_key`].
+    fn read_memory_address(
+        &mut self,
+        arbitration_id: u32,
+        address: u32,
+        length: u16,
+    ) -> Result<Vec<u8>, Error> {
+        let mut req = [0; 6];
+        req[0] = ((address & 0xFF000000) >> 24) as u8;
+        req[1] = ((address & 0xFF0000) >> 16) as u8;
+        req[2] = ((address & 0xFF00) >> 8) as u8;
+        req[3] = (address & 0xFF) as u8;
+
+        req[4] = (length >> 8) as u8;
+        req[5] = (length & 0xFF) as u8;
+
+        let response = self.query_uds(arbitration_id, UDS_REQ_READMEM, &req)?;
+        Ok(response)
+    }
 }
 
 impl<I: IsoTp> Uds for I {
@@ -156,7 +246,7 @@ impl<I: IsoTp> Uds for I {
             }
 
             if response_sid != request_sid + 0x40 {
-                return Err(Error::InvalidResponseSID(response_sid));
+                return Err(Error::InvalidResponseSid(response_sid));
             }
 
             response.remove(0);

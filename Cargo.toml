@@ -23,4 +23,4 @@ socketcan = {version = "1.7", optional = true}
 
 [[example]]
 path = "examples/passthru.rs"
-name = "PassThru"
+name = "passthru"

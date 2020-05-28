@@ -7,6 +7,7 @@ struct PassThruFilter {
     destination_id: u32,
 }
 
+/// PassThru ISO-TP channel.
 pub struct PassThruIsoTp<'ch> {
     channel: Channel<'ch>,
     timeout: u32,
