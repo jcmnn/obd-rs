@@ -148,6 +148,20 @@ pub trait Uds {
         }
     }
 
+    /// Queries the list of diagnostic trouble codes
+    fn query_pending_trouble_codes(&mut self, arbitration_id: u32) -> Result<Vec<DTC>, Error> {
+        let response = self.query_uds(arbitration_id, 0x07, &[])?;
+        if let Some(_size) = response.first() {
+            Ok((&response[1..])
+                .chunks(2)
+                .filter_map(|c| c.try_into().ok())
+                .map(|c| DTC(c))
+                .collect())
+        } else {
+            Err(Error::EmptyResponse)
+        }
+    }
+
     /// Sets the diagnostic session type
     fn set_diagnostic_session(&mut self, arbitration_id: u32, id: u8) -> Result<(), Error> {
         let response = self.query_uds(arbitration_id, UDS_REQ_SESSION, &[id])?;
