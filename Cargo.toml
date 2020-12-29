@@ -18,7 +18,7 @@ passthru = ["j2534"]
 
 [dependencies]
 thiserror = "1.0.14"
-j2534 = {version = "0.2.4", optional = true}
+j2534 = {version = "0.3.1", optional = true}
 socketcan = {version = "1.7", optional = true}
 
 [[example]]

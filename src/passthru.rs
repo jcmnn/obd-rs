@@ -27,7 +27,7 @@ impl<'ch> PassThruIsoTp<'ch> {
         device: &'ch j2534::Device,
         baudrate: u32,
         timeout: u32,
-    ) -> j2534::Result<PassThruIsoTp<'ch>> {
+    ) -> Result<PassThruIsoTp<'ch>, j2534::Error> {
         let channel = device.connect(Protocol::ISO15765, ConnectFlags::NONE, baudrate)?;
         Ok(PassThruIsoTp {
             channel,
@@ -37,7 +37,7 @@ impl<'ch> PassThruIsoTp<'ch> {
     }
 
     /// Establishes the flow control filter
-    pub fn set_filter(&mut self, source_id: u32, destination_id: u32) -> j2534::Result<()> {
+    pub fn set_filter(&mut self, source_id: u32, destination_id: u32) -> Result<(), j2534::Error> {
         if let Some(ref filter) = self.filter {
             if filter.source_id == source_id && filter.destination_id == destination_id {
                 return Ok(());
