@@ -1,6 +1,6 @@
 [package]
 name = "obd"
-version = "0.1.1"
+version = "0.1.2"
 description = "Utilities for working with vehicle on-board diagnostics"
 repository = "https://github.com/Altenius/obd-rs"
 keywords = ["cars", "tuning", "OBD-II", "can"]

@@ -251,7 +251,7 @@ impl<I: IsoTp> Uds for I {
             // Check the response SID
             if response_sid == UDS_RES_NEGATIVE {
                 // Check negative response code
-                let code = response.get(1).map(|c| *c);
+                let code = response.get(2).map(|c| *c);
                 if code == Some(UDS_NRES_RCRRP) {
                     // The transmitter is still processing; continue waiting.
                     continue;
