@@ -240,8 +240,9 @@ impl<I: IsoTp> Uds for I {
         request.push(request_sid);
         request.extend_from_slice(data);
 
+        self.send_isotp(arbitration_id, &request)?;
         loop {
-            let mut response = self.query_isotp(arbitration_id, &request)?;
+            let mut response = self.read_isotp(arbitration_id + 8)?;
 
             let response_sid = match response.first() {
                 Some(sid) => *sid,
